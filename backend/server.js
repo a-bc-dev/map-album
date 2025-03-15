@@ -48,3 +48,38 @@ app.get("/maps", async (req, res) => {
         results: results,
     });
 });
+
+
+app.get("/maps/:idMap", async (req, res) => {
+
+    const connection = await getConnection();
+
+    const [results] = await connection.query(`
+        SELECT * 
+            FROM maps
+            WHERE idMap = ?;`, [req.params.idMap]);
+
+    await connection.end();
+
+    res.json(
+         results[0]
+        );
+});
+
+app.post('/maps', async (req, res) => {
+    const connection = await getConnection();
+
+    const [results] = await connection.execute(
+        `INSERT INTO maps (name, description, privacy, idUser) 
+         VALUES (?, ?, ?, ?);`,
+        [req.body.name, req.body.description, req.body.privacy, req.body.idUser]
+    );
+
+    await connection.end();
+
+    res.json({
+        success: true,
+        idMap: results.insertId
+    });
+});
+

@@ -7,7 +7,7 @@ package-lock.json
 .env
 
 # Archivos de bases de datos
-*.sql
+.sql
 
 
 # Archivos del sistema
