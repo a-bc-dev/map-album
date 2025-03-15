@@ -127,5 +127,35 @@ app.put('/maps/:idMap', async (req, res) => {
     }
 });
 
+app.delete("/maps/:idMap", async (req, res) => {
+    try {
+        const connection = await getConnection();
+
+        const [result] = await connection.execute(
+            `DELETE FROM maps WHERE idMap = ?;`,
+            [req.params.idMap]
+        );
+
+        await connection.end();
+
+        if (result.affectedRows === 1) {
+            res.json({
+                success: true,
+                message: "Map deleted successfully.",
+            });
+        } else {
+            res.status(404).json({
+                success: false,
+                message: "Map not found.",
+            });
+        }
+    } catch (error) {
+        res.status(500).json({
+            success: false,
+            message: "Error deleting the map.",
+            error: error.message,
+        });
+    }
+});
 
 
