@@ -427,3 +427,106 @@ app.delete('/markers/:idMarker', async (req, res) => {
         });
     }
 });
+
+app.get("/multimedia", async (req, res) => {
+    try {
+        const connection = await getConnection();
+        const [results] = await connection.query(`SELECT * FROM multimedia;`);
+        await connection.end();
+
+        res.json({
+            info: { count: results.length },
+            results: results,
+        });
+    } catch (err) {
+        res.status(500).json({ success: false, message: err.toString() });
+    }
+});
+
+app.get("/multimedia/:idMultimedia", async (req, res) => {
+    try {
+        const connection = await getConnection();
+        const [results] = await connection.query(
+            `SELECT * FROM multimedia WHERE idMultimedia = ?;`,
+            [req.params.idMultimedia]
+        );
+        await connection.end();
+
+        if (results.length === 0) {
+            return res.status(404).json({ success: false, message: "Multimedia not found" });
+        }
+
+        res.json(results[0]);
+    } catch (err) {
+        res.status(500).json({ success: false, message: err.toString() });
+    }
+});
+
+app.post("/multimedia", async (req, res) => {
+    try {
+        // Validate required fields
+        if (!req.body.type || !req.body.idMarker) {
+            return res.status(400).json({
+                success: false,
+                message: "Missing required fields: type, idMarker",
+            });
+        }
+
+        const connection = await getConnection();
+        const [results] = await connection.execute(
+            `INSERT INTO multimedia (type, idMarker) VALUES (?, ?);`,
+            [req.body.type, req.body.idMarker]
+        );
+        await connection.end();
+
+        res.json({ success: true, idMultimedia: results.insertId });
+    } catch (err) {
+        res.status(500).json({ success: false, message: err.toString() });
+    }
+});
+
+app.put("/multimedia/:idMultimedia", async (req, res) => {
+    try {
+        // Validate required fields
+        if (!req.body.type) {
+            return res.status(400).json({
+                success: false,
+                message: "Missing required field: type",
+            });
+        }
+
+        const connection = await getConnection();
+        const [results] = await connection.execute(
+            `UPDATE multimedia SET type = ? WHERE idMultimedia = ?;`,
+            [req.body.type, req.params.idMultimedia]
+        );
+        await connection.end();
+
+        if (results.affectedRows === 0) {
+            return res.status(404).json({ success: false, message: "Multimedia not found" });
+        }
+
+        res.json({ success: true });
+    } catch (err) {
+        res.status(500).json({ success: false, message: err.toString() });
+    }
+});
+
+app.delete("/multimedia/:idMultimedia", async (req, res) => {
+    try {
+        const connection = await getConnection();
+        const [results] = await connection.execute(
+            `DELETE FROM multimedia WHERE idMultimedia = ?;`,
+            [req.params.idMultimedia]
+        );
+        await connection.end();
+
+        if (results.affectedRows === 0) {
+            return res.status(404).json({ success: false, message: "Multimedia not found" });
+        }
+
+        res.json({ success: true });
+    } catch (err) {
+        res.status(500).json({ success: false, message: err.toString() });
+    }
+});
