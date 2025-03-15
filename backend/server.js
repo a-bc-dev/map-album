@@ -435,37 +435,64 @@ app.get("/multimedia", async (req, res) => {
         await connection.end();
 
         res.json({
-            info: { count: results.length },
+            success: true,
+            count: results.length,
             results: results,
         });
-    } catch (err) {
-        res.status(500).json({ success: false, message: err.toString() });
+
+    } catch (error) {
+        res.status(500).json({
+            success: false,
+            message: "Server error: " + error.message,
+        });
     }
 });
 
+
 app.get("/multimedia/:idMultimedia", async (req, res) => {
     try {
+        const idMultimedia = req.params.idMultimedia;
+
+        if (!idMultimedia || isNaN(idMultimedia)) {
+            return res.status(400).json({
+                success: false,
+                message: "Invalid ID format. ID must be a number.",
+            });
+        }
+
         const connection = await getConnection();
         const [results] = await connection.query(
             `SELECT * FROM multimedia WHERE idMultimedia = ?;`,
-            [req.params.idMultimedia]
+            [idMultimedia]
         );
         await connection.end();
 
         if (results.length === 0) {
-            return res.status(404).json({ success: false, message: "Multimedia not found" });
+            return res.status(404).json({
+                success: false,
+                message: "Multimedia not found",
+            });
         }
 
-        res.json(results[0]);
-    } catch (err) {
-        res.status(500).json({ success: false, message: err.toString() });
+        res.json({
+            success: true,
+            result: results[0],
+        });
+
+    } catch (error) {
+        res.status(500).json({
+            success: false,
+            message: "Server error: " + error.message,
+        });
     }
 });
 
 app.post("/multimedia", async (req, res) => {
     try {
+        const { type, idMarker } = req.body;
+
         // Validate required fields
-        if (!req.body.type || !req.body.idMarker) {
+        if (!type || !idMarker) {
             return res.status(400).json({
                 success: false,
                 message: "Missing required fields: type, idMarker",
@@ -473,60 +500,132 @@ app.post("/multimedia", async (req, res) => {
         }
 
         const connection = await getConnection();
-        const [results] = await connection.execute(
+
+        // Insert into database
+        const [result] = await connection.execute(
             `INSERT INTO multimedia (type, idMarker) VALUES (?, ?);`,
-            [req.body.type, req.body.idMarker]
+            [type, idMarker]
         );
+
         await connection.end();
 
-        res.json({ success: true, idMultimedia: results.insertId });
-    } catch (err) {
-        res.status(500).json({ success: false, message: err.toString() });
+        res.json({
+            success: true,
+            idMultimedia: result.insertId,
+        });
+
+    } catch (error) {
+        res.status(500).json({
+            success: false,
+            message: "Server error: " + error.message,
+        });
     }
 });
 
+
 app.put("/multimedia/:idMultimedia", async (req, res) => {
     try {
-        // Validate required fields
-        if (!req.body.type) {
+        const idMultimedia = req.params.idMultimedia;
+        const { type, idMarker } = req.body;
+
+        if (!idMultimedia || isNaN(idMultimedia)) {
             return res.status(400).json({
                 success: false,
-                message: "Missing required field: type",
+                message: "Invalid ID format. ID must be a number.",
+            });
+        }
+
+        // Validate at least one field to update
+        if (!type && !idMarker) {
+            return res.status(400).json({
+                success: false,
+                message: "At least one field (type, idMarker) must be provided for update.",
             });
         }
 
         const connection = await getConnection();
-        const [results] = await connection.execute(
-            `UPDATE multimedia SET type = ? WHERE idMultimedia = ?;`,
-            [req.body.type, req.params.idMultimedia]
-        );
-        await connection.end();
 
-        if (results.affectedRows === 0) {
-            return res.status(404).json({ success: false, message: "Multimedia not found" });
+        // Check if the multimedia entry exists before updating
+        const [existing] = await connection.query(
+            `SELECT * FROM multimedia WHERE idMultimedia = ?;`,
+            [idMultimedia]
+        );
+
+        if (existing.length === 0) {
+            await connection.end();
+            return res.status(404).json({
+                success: false,
+                message: "Multimedia not found",
+            });
         }
 
-        res.json({ success: true });
-    } catch (err) {
-        res.status(500).json({ success: false, message: err.toString() });
+        // Update the entry
+        const [result] = await connection.execute(
+            `UPDATE multimedia SET type = ?, idMarker = ? WHERE idMultimedia = ?;`,
+            [type || existing[0].type, idMarker || existing[0].idMarker, idMultimedia]
+        );
+
+        await connection.end();
+
+        res.json({
+            success: true,
+            message: "Multimedia updated successfully",
+        });
+
+    } catch (error) {
+        res.status(500).json({
+            success: false,
+            message: "Server error: " + error.message,
+        });
     }
 });
+
 
 app.delete("/multimedia/:idMultimedia", async (req, res) => {
     try {
-        const connection = await getConnection();
-        const [results] = await connection.execute(
-            `DELETE FROM multimedia WHERE idMultimedia = ?;`,
-            [req.params.idMultimedia]
-        );
-        await connection.end();
+        const idMultimedia = req.params.idMultimedia;
 
-        if (results.affectedRows === 0) {
-            return res.status(404).json({ success: false, message: "Multimedia not found" });
+        if (!idMultimedia || isNaN(idMultimedia)) {
+            return res.status(400).json({
+                success: false,
+                message: "Invalid ID format. ID must be a number.",
+            });
         }
 
-        res.json({ success: true });
-    } catch (err) {
-        res.status(500).json({ success: false, message: err.toString() });
+        const connection = await getConnection();
+
+        // Check if the multimedia entry exists before deleting
+        const [existing] = await connection.query(
+            `SELECT * FROM multimedia WHERE idMultimedia = ?;`,
+            [idMultimedia]
+        );
+
+        if (existing.length === 0) {
+            await connection.end();
+            return res.status(404).json({
+                success: false,
+                message: "Multimedia not found",
+            });
+        }
+
+        // Proceed to delete the entry
+        await connection.execute(
+            `DELETE FROM multimedia WHERE idMultimedia = ?;`,
+            [idMultimedia]
+        );
+
+        await connection.end();
+
+        res.json({
+            success: true,
+            message: "Multimedia deleted successfully",
+        });
+
+    } catch (error) {
+        res.status(500).json({
+            success: false,
+            message: "Server error: " + error.message,
+        });
     }
 });
+
