@@ -32,22 +32,47 @@ app.listen(port, () => {
     console.log(`Example app listening on port <http://localhost:${port}>`);
 });
 
-//First endpoint
+//Endpoints
 app.get("/maps", async (req, res) => {
+    try {
+        const connection = await getConnection();
+        
+        let page = parseInt(req.query.page) || 1;
+        let limit = parseInt(req.query.limit) || 10;
+        let offset = (page - 1) * limit;
 
-    const connection = await getConnection();
+        // Fetch total count
+        const [totalResults] = await connection.query(`SELECT COUNT(*) AS total FROM maps;`);
+        const total = totalResults[0].total;
 
-    const [results] = await connection.query(`SELECT * FROM maps;`);
+        // Fetch paginated results
+        const [results] = await connection.query(
+            `SELECT * FROM maps LIMIT ? OFFSET ?;`,
+            [limit, offset]
+        );
 
-    await connection.end();
+        await connection.end();
 
-    const numberOfElements = results.length;
+        res.json({
+            success: true,
+            info: {
+                total: total,
+                page: page,
+                limit: limit,
+                totalPages: Math.ceil(total / limit),
+            },
+            results: results,
+        });
 
-    res.json({
-        info: { count: numberOfElements },
-        results: results,
-    });
+    } catch (error) {
+        res.status(500).json({
+            success: false,
+            message: "Error fetching maps",
+            error: error.message
+        });
+    }
 });
+
 
 
 app.get("/maps/:idMap", async (req, res) => {
@@ -243,6 +268,45 @@ app.delete("/maps/:idMap", async (req, res) => {
     }
 });
 
+app.get("/markers", async (req, res) => {
+    try {
+        const connection = await getConnection();
+        
+        let page = parseInt(req.query.page) || 1;
+        let limit = parseInt(req.query.limit) || 10;
+        let offset = (page - 1) * limit;
+
+        const [totalResults] = await connection.query(`SELECT COUNT(*) AS total FROM markers;`);
+        const total = totalResults[0].total;
+
+        const [results] = await connection.query(
+            `SELECT * FROM markers LIMIT ? OFFSET ?;`,
+            [limit, offset]
+        );
+
+        await connection.end();
+
+        res.json({
+            success: true,
+            info: {
+                total: total,
+                page: page,
+                limit: limit,
+                totalPages: Math.ceil(total / limit),
+            },
+            results: results,
+        });
+
+    } catch (error) {
+        res.status(500).json({
+            success: false,
+            message: "Error fetching markers",
+            error: error.message
+        });
+    }
+});
+
+
 app.get("/markers/:idMarker", async (req, res) => {
     try {
         const connection = await getConnection();
@@ -431,19 +495,37 @@ app.delete('/markers/:idMarker', async (req, res) => {
 app.get("/multimedia", async (req, res) => {
     try {
         const connection = await getConnection();
-        const [results] = await connection.query(`SELECT * FROM multimedia;`);
+        
+        let page = parseInt(req.query.page) || 1;
+        let limit = parseInt(req.query.limit) || 10;
+        let offset = (page - 1) * limit;
+
+        const [totalResults] = await connection.query(`SELECT COUNT(*) AS total FROM multimedia;`);
+        const total = totalResults[0].total;
+
+        const [results] = await connection.query(
+            `SELECT * FROM multimedia LIMIT ? OFFSET ?;`,
+            [limit, offset]
+        );
+
         await connection.end();
 
         res.json({
             success: true,
-            count: results.length,
+            info: {
+                total: total,
+                page: page,
+                limit: limit,
+                totalPages: Math.ceil(total / limit),
+            },
             results: results,
         });
 
     } catch (error) {
         res.status(500).json({
             success: false,
-            message: "Server error: " + error.message,
+            message: "Error fetching multimedia",
+            error: error.message
         });
     }
 });
