@@ -1,0 +1,22 @@
+# Node.js
+node_modules/
+npm-debug.log
+package-lock.json
+
+# Variables de entorno
+.env
+
+# Archivos de bases de datos
+*.sql
+
+
+# Archivos del sistema
+.DS_Store
+Thumbs.db
+
+# Logs y caché
+logs
+*.log
+debug.log
+yarn-debug.log
+yarn-error.log

@@ -1,0 +1,32 @@
+{
+  "name": "mapalbum-backend",
+  "version": "1.0.0",
+  "description": "Backend for MapAlbum",
+  "keywords": [
+    "nodejs",
+    "expressjs",
+    "mysql",
+    "API",
+    "mapalbum"
+  ],
+  "homepage": "https://github.com/Adalab/modulo-4-evaluacion-final-bpw-biancadragan#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Adalab/modulo-4-evaluacion-final-bpw-biancadragan"
+  },
+  "license": "ISC",
+  "author": "Bianca Dragan",
+  "type": "commonjs",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node --watch server.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "dependencies": {
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.7",
+    "express": "^4.21.2",
+    "mysql2": "^3.13.0"
+  }
+}
