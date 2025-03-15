@@ -16,9 +16,15 @@ app.use("/maps", mapsRoutes);
 app.use("/markers", markersRoutes);
 app.use("/multimedia", multimediaRoutes);
 
-const port = 3000;
-app.listen(port, () => {
-    console.log(`Server running on http://localhost:${port}`);
-});
+// Only start the server if not in test mode
+if (process.env.NODE_ENV !== "test") {
+    const port = process.env.PORT || 3000;
+    app.listen(port, () => {
+        console.log(`Server running on http://localhost:${port}`);
+    });
+}
+
+// Export app for testing
+module.exports = app;
 
 
