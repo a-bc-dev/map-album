@@ -243,4 +243,129 @@ app.delete("/maps/:idMap", async (req, res) => {
     }
 });
 
+app.get("/markers/:idMarker", async (req, res) => {
+    try {
+        const connection = await getConnection();
+        const [results] = await connection.query(
+            `SELECT * FROM markers WHERE idMarker = ?;`,
+            [req.params.idMarker]
+        );
+        await connection.end();
 
+        if (results.length === 0) {
+            return res.status(404).json({ success: false, message: "Marker not found" });
+        }
+
+        res.json({ success: true, data: results[0] });
+
+    } catch (error) {
+        res.status(500).json({
+            success: false,
+            message: "Error fetching marker",
+            error: error.message
+        });
+    }
+});
+
+app.post('/markers', async (req, res) => {
+    try {
+        const { title, description, latitude, longitude, idMap } = req.body;
+
+        if (!title || !latitude || !longitude || !idMap) {
+            return res.status(400).json({
+                success: false,
+                message: "Missing required fields: title, latitude, longitude, idMap"
+            });
+        }
+
+        const connection = await getConnection();
+        const [results] = await connection.execute(
+            `INSERT INTO markers (title, description, latitude, longitude, idMap) 
+             VALUES (?, ?, ?, ?, ?);`,
+            [title, description, latitude, longitude, idMap]
+        );
+        await connection.end();
+
+        res.status(201).json({
+            success: true,
+            idMarker: results.insertId
+        });
+
+    } catch (error) {
+        res.status(500).json({
+            success: false,
+            message: error.message
+        });
+    }
+});
+
+app.put('/markers/:idMarker', async (req, res) => {
+    try {
+        const { title, description, latitude, longitude, idMap } = req.body;
+        const { idMarker } = req.params;
+
+        if (!title || !latitude || !longitude || !idMap) {
+            return res.status(400).json({
+                success: false,
+                message: "Missing required fields: title, latitude, longitude, idMap"
+            });
+        }
+
+        const connection = await getConnection();
+        const [results] = await connection.execute(
+            `UPDATE markers SET title=?, description=?, latitude=?, longitude=?, idMap=? 
+             WHERE idMarker=?;`,
+            [title, description, latitude, longitude, idMap, idMarker]
+        );
+        await connection.end();
+
+        if (results.affectedRows === 0) {
+            return res.status(404).json({
+                success: false,
+                message: "Marker not found"
+            });
+        }
+
+        res.json({
+            success: true,
+            message: "Marker updated successfully"
+        });
+
+    } catch (error) {
+        res.status(500).json({
+            success: false,
+            message: error.message
+        });
+    }
+});
+
+app.delete('/markers/:idMarker', async (req, res) => {
+    try {
+        const { idMarker } = req.params;
+
+        const connection = await getConnection();
+        const [results] = await connection.execute(
+            `DELETE FROM markers WHERE idMarker=?;`,
+            [idMarker]
+        );
+        await connection.end();
+
+        if (results.affectedRows === 0) {
+            return res.status(404).json({
+                success: false,
+                message: "Marker not found"
+            });
+        }
+
+        res.json({
+            success: true,
+            message: "Marker deleted successfully"
+        });
+
+    } catch (error) {
+        res.status(500).json({
+            success: false,
+            message: error.message
+        });
+    }
+});
