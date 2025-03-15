@@ -271,6 +271,7 @@ app.post('/markers', async (req, res) => {
     try {
         const { title, description, latitude, longitude, idMap } = req.body;
 
+        // Validation: Required fields
         if (!title || !latitude || !longitude || !idMap) {
             return res.status(400).json({
                 success: false,
@@ -278,6 +279,21 @@ app.post('/markers', async (req, res) => {
             });
         }
 
+        // Validation: Data types
+        if (typeof title !== "string" || typeof idMap !== "number") {
+            return res.status(400).json({
+                success: false,
+                message: "Invalid data type: title must be a string, idMap must be a number"
+            });
+        }
+        if (typeof latitude !== "number" || typeof longitude !== "number") {
+            return res.status(400).json({
+                success: false,
+                message: "Invalid data type: latitude and longitude must be numbers"
+            });
+        }
+
+        // Insert marker
         const connection = await getConnection();
         const [results] = await connection.execute(
             `INSERT INTO markers (title, description, latitude, longitude, idMap) 
@@ -299,11 +315,13 @@ app.post('/markers', async (req, res) => {
     }
 });
 
+
 app.put('/markers/:idMarker', async (req, res) => {
     try {
         const { title, description, latitude, longitude, idMap } = req.body;
         const { idMarker } = req.params;
 
+        // Validation: Required fields
         if (!title || !latitude || !longitude || !idMap) {
             return res.status(400).json({
                 success: false,
@@ -311,20 +329,43 @@ app.put('/markers/:idMarker', async (req, res) => {
             });
         }
 
+        // Validation: Data types
+        if (typeof title !== "string" || typeof idMap !== "number") {
+            return res.status(400).json({
+                success: false,
+                message: "Invalid data type: title must be a string, idMap must be a number"
+            });
+        }
+        if (typeof latitude !== "number" || typeof longitude !== "number") {
+            return res.status(400).json({
+                success: false,
+                message: "Invalid data type: latitude and longitude must be numbers"
+            });
+        }
+
         const connection = await getConnection();
+
+        // Check if marker exists before updating
+        const [existingMarker] = await connection.execute(
+            `SELECT * FROM markers WHERE idMarker = ?;`,
+            [idMarker]
+        );
+
+        if (existingMarker.length === 0) {
+            await connection.end();
+            return res.status(404).json({
+                success: false,
+                message: "Marker not found"
+            });
+        }
+
+        // Update marker
         const [results] = await connection.execute(
             `UPDATE markers SET title=?, description=?, latitude=?, longitude=?, idMap=? 
              WHERE idMarker=?;`,
             [title, description, latitude, longitude, idMap, idMarker]
         );
         await connection.end();
-
-        if (results.affectedRows === 0) {
-            return res.status(404).json({
-                success: false,
-                message: "Marker not found"
-            });
-        }
 
         res.json({
             success: true,
@@ -339,23 +380,40 @@ app.put('/markers/:idMarker', async (req, res) => {
     }
 });
 
+
 app.delete('/markers/:idMarker', async (req, res) => {
     try {
         const { idMarker } = req.params;
 
+        if (!idMarker) {
+            return res.status(400).json({
+                success: false,
+                message: "Missing required field: idMarker"
+            });
+        }
+
         const connection = await getConnection();
-        const [results] = await connection.execute(
-            `DELETE FROM markers WHERE idMarker=?;`,
+
+        // Check if marker exists before deleting
+        const [existingMarker] = await connection.execute(
+            `SELECT * FROM markers WHERE idMarker = ?;`,
             [idMarker]
         );
-        await connection.end();
 
-        if (results.affectedRows === 0) {
+        if (existingMarker.length === 0) {
+            await connection.end();
             return res.status(404).json({
                 success: false,
                 message: "Marker not found"
             });
         }
+
+        // Delete marker
+        const [results] = await connection.execute(
+            `DELETE FROM markers WHERE idMarker=?;`,
+            [idMarker]
+        );
+        await connection.end();
 
         res.json({
             success: true,
