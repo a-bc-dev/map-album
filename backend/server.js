@@ -68,64 +68,149 @@ app.get("/maps/:idMap", async (req, res) => {
 
 app.post('/maps', async (req, res) => {
     try {
-        const connection = await getConnection();
+        const { name, description, privacy, idUser } = req.body;
 
-        const [result] = await connection.execute(
-            `INSERT INTO maps (name, description, privacy, idUser) 
-             VALUES (?, ?, ?, ?);`,
-            [req.body.name, req.body.description, req.body.privacy, req.body.idUser]
-        );
-
-        await connection.end();
-
-        res.json({
-            success: true,
-            idMap: result.insertId
-        });
-
-    } catch (error) {
-        res.status(500).json({
-            success: false,
-            message: error.message
-        });
-    }
-});
-
-app.put('/maps/:idMap', async (req, res) => {
-    try {
-        const connection = await getConnection();
-
-        const [result] = await connection.execute(
-            `UPDATE maps
-             SET name = ?, description = ?, privacy = ?, idUser = ?
-             WHERE idMap = ?;`,
-            [req.body.name, req.body.description, req.body.privacy, req.body.idUser, req.params.idMap]
-        );
-
-        await connection.end();
-
-        // Check if any row was updated
-        if (result.affectedRows === 0) {
-            return res.status(404).json({
+        // Basic Validation: Check if required fields are present
+        if (!name || !privacy || !idUser) {
+            return res.status(400).json({
                 success: false,
-                message: "Map not found or no changes made."
+                message: "Missing required fields: name, privacy, idUser"
             });
         }
 
+        // Field Length Validation
+        if (name.length < 3 || name.length > 255) {
+            return res.status(400).json({
+                success: false,
+                message: "Name must be between 3 and 255 characters"
+            });
+        }
+
+        if (description && description.length > 1000) {
+            return res.status(400).json({
+                success: false,
+                message: "Description must be less than 1000 characters"
+            });
+        }
+
+        // Allowed Values for ENUM fields
+        const validPrivacyOptions = ["public", "private"];
+        if (!validPrivacyOptions.includes(privacy)) {
+            return res.status(400).json({
+                success: false,
+                message: "Privacy must be 'public' or 'private'"
+            });
+        }
+
+        // Ensure idUser is a valid number
+        if (isNaN(idUser) || idUser < 1) {
+            return res.status(400).json({
+                success: false,
+                message: "idUser must be a valid positive number"
+            });
+        }
+
+        const connection = await getConnection();
+
+        const [results] = await connection.execute(
+            `INSERT INTO maps (name, description, privacy, idUser) 
+             VALUES (?, ?, ?, ?);`,
+            [name, description, privacy, idUser]
+        );
+
+        await connection.end();
+
         res.json({
             success: true,
-            message: "Map updated successfully."
+            idMap: results.insertId
         });
 
     } catch (error) {
-        console.error("Database Error:", error.message);
-
         res.status(500).json({
             success: false,
-            message: "Error updating the map. Please check your input and try again."
+            message: "Error inserting map.",
+            error: error.message
         });
     }
 });
+
+
+app.put('/maps/:idMap', async (req, res) => {
+    try {
+        const { name, description, privacy, idUser } = req.body;
+        const { idMap } = req.params;
+
+        // Basic Validation: Check if required fields are present
+        if (!name || !privacy || !idUser) {
+            return res.status(400).json({
+                success: false,
+                message: "Missing required fields: name, privacy, idUser"
+            });
+        }
+
+        // Field Length Validation
+        if (name.length < 3 || name.length > 255) {
+            return res.status(400).json({
+                success: false,
+                message: "Name must be between 3 and 255 characters"
+            });
+        }
+
+        if (description && description.length > 1000) {
+            return res.status(400).json({
+                success: false,
+                message: "Description must be less than 1000 characters"
+            });
+        }
+
+        // Allowed Values for ENUM fields
+        const validPrivacyOptions = ["public", "private"];
+        if (!validPrivacyOptions.includes(privacy)) {
+            return res.status(400).json({
+                success: false,
+                message: "Privacy must be 'public' or 'private'"
+            });
+        }
+
+        // Ensure idUser and idMap are valid numbers
+        if (isNaN(idUser) || idUser < 1 || isNaN(idMap) || idMap < 1) {
+            return res.status(400).json({
+                success: false,
+                message: "idUser and idMap must be valid positive numbers"
+            });
+        }
+
+        const connection = await getConnection();
+
+        const [results] = await connection.execute(
+            `UPDATE maps 
+             SET name = ?, description = ?, privacy = ?, idUser = ? 
+             WHERE idMap = ?;`,
+            [name, description, privacy, idUser, idMap]
+        );
+
+        await connection.end();
+
+        if (results.affectedRows === 1) {
+            res.json({
+                success: true,
+                message: "Map updated successfully"
+            });
+        } else {
+            res.status(404).json({
+                success: false,
+                message: "Map not found"
+            });
+        }
+    } catch (error) {
+        res.status(500).json({
+            success: false,
+            message: "Error updating map.",
+            error: error.message
+        });
+    }
+});
+
 
 app.delete("/maps/:idMap", async (req, res) => {
     try {
