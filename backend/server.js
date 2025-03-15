@@ -91,4 +91,41 @@ app.post('/maps', async (req, res) => {
     }
 });
 
+app.put('/maps/:idMap', async (req, res) => {
+    try {
+        const connection = await getConnection();
+
+        const [result] = await connection.execute(
+            `UPDATE maps
+             SET name = ?, description = ?, privacy = ?, idUser = ?
+             WHERE idMap = ?;`,
+            [req.body.name, req.body.description, req.body.privacy, req.body.idUser, req.params.idMap]
+        );
+
+        await connection.end();
+
+        // Check if any row was updated
+        if (result.affectedRows === 0) {
+            return res.status(404).json({
+                success: false,
+                message: "Map not found or no changes made."
+            });
+        }
+
+        res.json({
+            success: true,
+            message: "Map updated successfully."
+        });
+
+    } catch (error) {
+        console.error("Database Error:", error.message);
+
+        res.status(500).json({
+            success: false,
+            message: "Error updating the map. Please check your input and try again."
+        });
+    }
+});
+
+
 
