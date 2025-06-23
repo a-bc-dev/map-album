@@ -1,6 +1,6 @@
-# MapAlbum API
+# Map Album API
 
-MapAlbum is a RESTful API built with **Node.js**, **Express**, and **MySQL** to manage maps, markers, and multimedia content.
+Map Album is a RESTful API built with **Node.js**, **Express**, and **MySQL** to manage maps, markers, and multimedia content.
 
 ---
 
